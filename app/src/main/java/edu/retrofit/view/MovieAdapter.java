@@ -40,9 +40,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder>{
 		if (movies.size() == 0) {
 			this.movies = movies;
 		} else {
-			for (Result r: movies) {
-				this.movies.add(r);
-			}
+			this.movies.addAll(movies);
 			notifyDataSetChanged();
 		}
 	}

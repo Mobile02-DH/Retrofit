@@ -1,12 +1,12 @@
 package edu.retrofit.view;
 
-import android.os.Build;
-import android.support.v7.app.AppCompatActivity;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,66 +19,100 @@ import edu.retrofit.R;
 
 public class MainActivity extends AppCompatActivity implements WebServiceInterface {
 
-	private int pag=1;
-	private int totalPages=20;
-	TextView txtMovies;
-	ServiceController serviceController;
-	RecyclerView rcvMovies;
+    private int pag = 1;
+    private int totalPages = 10;
+    private TextView txtMovies;
+    private ServiceController serviceController;
+    private RecyclerView rcvMovies;
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-		txtMovies = findViewById(R.id.txtMovies);
-		rcvMovies = findViewById(R.id.rcvMovies);
+        initViews();
+        serviceController = new ServiceController(this);
+        serviceController.callService("top_rated", "pt-BR", pag, "BR");
+        setScrollListener();
+    }
 
-		serviceController = new ServiceController(this);
-		serviceController.callService("top_rated", "pt-BR", pag, "BR");
+    private void setScrollListener() {
+        rcvMovies.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
 
+            }
 
-		rcvMovies.addOnScrollListener(new RecyclerView.OnScrollListener() {
-			@Override
-			public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-				super.onScrollStateChanged(recyclerView, newState);
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
 
-			}
+                verifyIsLast(recyclerView);
+            }
+        });
+    }
 
-			@Override
-			public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-				super.onScrolled(recyclerView, dx, dy);
-				if(dy>0 && pag <= totalPages){
-					//scrolling down
-					serviceController.callService("top_rated", "pt-BR", pag, "BR");
-				}else {
-					//scolling up
-				}
-			}
-		});
+    private void verifyIsLast(RecyclerView recyclerView) {
+        LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+        int totalItemCount = layoutManager.getItemCount();
+        int lastVisible = layoutManager.findLastVisibleItemPosition();
 
-	}
+        boolean endHasBeenReached = lastVisible + 5 >= totalItemCount;
 
-	@Override
-	public void success(Object obj) {
-		pag++;
-		List<Result> movies = (List<Result>) obj;
-		if (rcvMovies.getAdapter() == null) {
-			//lembrar do transaction manager
-			RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
-			rcvMovies.setLayoutManager(layoutManager);
+        if (totalItemCount > 0 && endHasBeenReached && pag <= totalPages) {
+            //you have reached to the bottom of your recycler view
+            pag++;
+            serviceController.callService("top_rated", "pt-BR", pag, "BR");
+        }
 
-			MovieAdapter movieAdapter = new MovieAdapter();
-			movieAdapter.setMovies(movies);
-			rcvMovies.setAdapter(movieAdapter);
-		} else {
-			Toast.makeText(this, "Finalizou a página "+pag, Toast.LENGTH_LONG).show();
-			((MovieAdapter) rcvMovies.getAdapter()).setMovies(movies);
-		}
-	}
+        if (pag == totalPages) {
+            showMessage();
+        }
+    }
 
-	@Override
-	public void erro(Throwable throwable) {
-		Toast.makeText(this, "Deu erro!", Toast.LENGTH_LONG).show();
-	}
+    private void initViews() {
+        txtMovies = findViewById(R.id.txtMovies);
+        rcvMovies = findViewById(R.id.rcvMovies);
+    }
 
+    @Override
+    public void success(Object obj) {
+        List<Result> movies = (List<Result>) obj;
+        if (rcvMovies.getAdapter() == null) {
+            //lembrar do transaction manager
+            RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+            rcvMovies.setLayoutManager(layoutManager);
+
+            MovieAdapter movieAdapter = new MovieAdapter();
+            movieAdapter.setMovies(movies);
+            rcvMovies.setAdapter(movieAdapter);
+        } else {
+            Toast.makeText(this, "Finalizou a página " + pag, Toast.LENGTH_LONG).show();
+            ((MovieAdapter) rcvMovies.getAdapter()).setMovies(movies);
+        }
+    }
+
+    private void showMessage() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Atenção");
+        builder.setMessage("Acabou as paginas");
+        builder.setCancelable(false);
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_SEND);
+                startActivity(intent);
+                dialog.dismiss();
+            }
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    @Override
+    public void erro(Throwable throwable) {
+        Toast.makeText(this, "Deu erro!", Toast.LENGTH_LONG).show();
+    }
 }
