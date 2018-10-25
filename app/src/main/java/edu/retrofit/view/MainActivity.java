@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements WebServiceInterfa
             serviceController.callService("top_rated", "pt-BR", pag, "BR");
         }
 
-        if (pag == totalPages) {
+        if (pag == 2) {
             showMessage();
         }
     }
@@ -101,8 +101,11 @@ public class MainActivity extends AppCompatActivity implements WebServiceInterfa
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Intent intent = new Intent();
-                intent.setAction(Intent.ACTION_SEND);
+                Intent intent = new Intent(Intent.ACTION_SENDTO);
+                intent.setType("text/html");
+                intent.putExtra(Intent.EXTRA_EMAIL, "emailaddress@emailaddress.com");
+                intent.putExtra(Intent.EXTRA_SUBJECT, "Subject");
+                intent.putExtra(Intent.EXTRA_TEXT, "I'm email body.");
                 startActivity(intent);
                 dialog.dismiss();
             }
